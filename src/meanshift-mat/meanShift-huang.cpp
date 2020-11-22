@@ -33,7 +33,7 @@
 
 #define Num_Cluster 7
 
-#define bandwidth 0.15
+#define bandwidth 0.25//0.15
 
 int iter=0;
 uint64_t first_timestamp;
@@ -56,6 +56,8 @@ std::vector<std::vector<int> > centroid_traj_y;
 std::vector<std::vector<Point> > centroid_traj;
 std::vector<Point> original_centroid;
 
+std::vector<int> events_num;
+
 std::vector<int> a;
 
 int last_size;
@@ -66,7 +68,6 @@ int t_count;
 	int LBI;
 	int TP;
 	int GT;
-
 
 namespace dvs_test {
 
@@ -93,12 +94,14 @@ void Meanshift::eventsCallback_simple(const dvs_msgs::EventArray::ConstPtr& msg)
 	height=msg->height; //180
 	width=msg->width; //240
 	events_size=msg->events.size();
-	events_num.push_back(events_size);
+	//events_num.push_back(events_size);
 
 	sparseMatrix=cv::Mat::zeros(height,width,CV_8UC1);
 
 	ROS_INFO("events_size: [%d]",events_size);
-
+	//ROS_INFO("total_events_size: [%d]",events_num.size());
+	//std::cout<<"total_events_size="<<event_num[0]<<std::endl;
+		
 	// store in mat
 	cv_bridge::CvImage cv_image;
         cv_image.image = cv::Mat(msg->height, msg->width, CV_8UC3);//CV_8U-->mono
@@ -140,7 +143,8 @@ void Meanshift::eventsCallback_simple(const dvs_msgs::EventArray::ConstPtr& msg)
 
 	}
 
-
+if (events_size>60)
+{
 	// count events per pixels with polarity
 	//cv::Mat data=cv::Mat(3, events_size, CV_64F, cv::Scalar::all(0.));
 
@@ -163,7 +167,7 @@ void Meanshift::eventsCallback_simple(const dvs_msgs::EventArray::ConstPtr& msg)
 	//packet = 100;
 	int ClusterID=0;
 	
-	while(beginEvent < events_size)
+	while(beginEvent < events_size )
 	{
 		  counterIn = 0;
 		  counterOut = 0;
@@ -181,7 +185,7 @@ void Meanshift::eventsCallback_simple(const dvs_msgs::EventArray::ConstPtr& msg)
 		//double usTime = 10.0;
 		double ts;
 		int temp=min(beginEvent+packet, events_size);
-		events_num.push_back(temp);
+		//events_num.push_back(temp);
 
 		for (int i = beginEvent; i < min(beginEvent+packet, events_size); i++)//
 		{
@@ -298,6 +302,7 @@ void Meanshift::eventsCallback_simple(const dvs_msgs::EventArray::ConstPtr& msg)
 				}
 			}
 			clusters_test.push_back(cluster_points);
+			std::cout<<"count_points="<<count_points<<std::endl;
 			// ------filter events noise----------------------------
 			if (count_points>10) //50 for raw events //4 for corner events //40 for last working file
 			{
@@ -307,13 +312,13 @@ void Meanshift::eventsCallback_simple(const dvs_msgs::EventArray::ConstPtr& msg)
 				//cv::circle(cv_image1.image, cluster_point_cv, 1, cv::Scalar(255,255,255), 5, 8, 0);//------------
 			}
 
-			centroid_filter_prev=centroid_filter;
-
+			//centroid_filter_prev=centroid_filter;
+			//centroid_filter.push_back({xx,yy});
 	}
 
 
 	//if (events_size-beginEvent < packet )
-	//std::cout<<"cluster_size="<<clustCentX.size()<<",ClusterID="<<ClusterID<<",centroid_filter="<<centroid_filter.size()<<std::endl;
+	std::cout<<"cluster_size="<<clustCentX.size()<<",ClusterID="<<ClusterID<<",centroid_filter="<<centroid_filter.size()<<std::endl;
 
 		
 	}//while packet
@@ -346,21 +351,22 @@ void Meanshift::eventsCallback_simple(const dvs_msgs::EventArray::ConstPtr& msg)
 			cv::circle(cv_image.image, cv::Point(x1,y1), 1, cv::Scalar(0,255,0), 5, 8, 0);//------------------
 		}
 	}
-	//std::cout<<"centroid_filter.size="<<centroid_filter.size()<<",centroid_final.size="<<centroid_final.size()<<",ClusterID="<<ClusterID<<std::endl;
+std::cout<<"centroid_filter.size="<<centroid_filter.size()<<",centroid_final.size="<<centroid_final.size()<<",ClusterID="<<ClusterID<<std::endl;
 	int cs=centroid_final.size();
 	for (int i=0; i<cs; i++)
 	{
 		std::cout<<"points=("<<centroid_final[i][0]<<","<<centroid_final[i][1]<<")"<<std::endl;
 	}
-	if (centroid_final.size()>3) // remove the situation that nothing detected //
-	{
 
-
+	//if (centroid_final.size()>0) // remove the situation that nothing detected //
+	//{
 	// get initial centroid 
 	std::vector<Point> temp_center=cluster_center;//centroid_final;
+	if (iter==1) temp_center=centroid_final;
 	std::vector<Point> curr_center=centroid_final; 
 	cluster_center.clear();
-	int vector_x,vector_y;
+	
+	int vector_x=0,vector_y=0;
 	int ii_t=0; int vector_i=0;
 
 	// track the centroid----------------------------------
@@ -369,12 +375,12 @@ void Meanshift::eventsCallback_simple(const dvs_msgs::EventArray::ConstPtr& msg)
 	{
 	LBI+=centroid_final.size(); 
 	GT+=7;
-	if (centroid_final.size()<=7) TP+=centroid_final.size();
-	else TP+=7;
+	//if (centroid_final.size()<=7) TP+=centroid_final.size();
+	std::cout<<"temp_center.size()="<<temp_center.size()<<std::endl;
 	for (int cc=0; cc<temp_center.size(); cc++) // last iteration
 	{
 		int ii=0; 	std::vector<Point> center_ii;
-		int xii=0, yii=0;
+		int xii=0, yii=0; //int vector_i=0;
 		int xii_bar=0, yii_bar=0;
 		int ccx=temp_center[cc][0];
 		int ccy=temp_center[cc][1];
@@ -390,15 +396,20 @@ void Meanshift::eventsCallback_simple(const dvs_msgs::EventArray::ConstPtr& msg)
 				//std::cout<<"I find "<< cc <<"th center!!!"<<",center_ii.size()="<<center_ii.size()<<std::endl;
 				curr_center[tc][0]=0; curr_center[tc][1]=0; 
 				ii_t++;
-				//if (ii==1) TP++;
 			}
-			//else 
+			else
+			{
+				curr_center[tc][0]=tcx; curr_center[tc][1]=tcy; // new center remained 
+			} 
 		}
+
+		//if (ii>0) TP++;
+		//std::cout<<"ii="<<ii<<",TP="<<TP<<std::endl;
 
 		//---check the repeated centers and get the final centers of current iteration----------
 		if (ii>0)//(center_ii.size()>1) 
 		{
-			vector_i++; //TP++;
+			vector_i++; TP++;
 			for (int j=0; j<center_ii.size(); j++)
 			{
 				xii+=center_ii[j][0];
@@ -408,8 +419,8 @@ void Meanshift::eventsCallback_simple(const dvs_msgs::EventArray::ConstPtr& msg)
 			xii/=center_ii.size();
 			yii/=center_ii.size();
 			cluster_center.push_back({xii,yii});
-			vector_x=xii-ccx; vector_y=yii-ccy;
-				std::cout<<"I find "<< cc <<"th center!!!---new"<<std::endl;
+			vector_x=vector_x+xii-ccx; vector_y=vector_x+yii-ccy;
+				std::cout<<"I find "<< cc <<"th center!!!---new"<<",TP="<<TP<<std::endl;
 		}
 		else if (vector_i!=0)
 		{
@@ -421,12 +432,69 @@ void Meanshift::eventsCallback_simple(const dvs_msgs::EventArray::ConstPtr& msg)
 			cluster_center.push_back({ccx,ccy});
 				std::cout<<"I find "<< cc <<"th center!!!---dis"<<std::endl;
 		}
-
+		center_ii.clear();
 	}
-	std::cout<<"ii_t="<<ii_t<<",cluster_center.size="<<cluster_center.size()<<std::endl;
-	}// end-else
-	}// end-if
 
+	std::vector<Point> cluster_center_remain;
+
+	for (int cc=0; cc<curr_center.size(); cc++)
+	{
+		int it=0;
+		if (curr_center[cc][0]!=0 && curr_center[cc][1]!=0)
+		{
+			it++;
+			//cluster_center_remain[it][0]=curr_center[cc][0]; 
+			//cluster_center_remain[it][1]=curr_center[cc][1];
+			cluster_center_remain.push_back({curr_center[cc][0],curr_center[cc][0]});
+		}
+	}
+	
+	if (cluster_center_remain.size()==1) 
+	{
+		cluster_center.push_back({cluster_center_remain[0][0],cluster_center_remain[0][0]});
+		std::cout<<"I find new center!!!---dis"<<std::endl;
+	}
+	else if ( cluster_center_remain.size()>0) {//cluster_center_remain.size>1;
+	for (int cci=0; cci<cluster_center_remain.size(); cci++)
+	{
+		std::vector<Point> center_ii;
+		int ii=0;
+		int ccx=cluster_center_remain[cci][0];
+		int ccy=cluster_center_remain[cci][1];
+		for (int ccj=cci+1; ccj<cluster_center_remain.size(); ccj++)
+		{
+			int tcx=cluster_center_remain[ccj][0];
+			int tcy=cluster_center_remain[ccj][1];
+			double disTwoCen=pow((ccx-tcx),2)+pow((ccy-tcy),2);
+			if (disTwoCen<(bandwidth*bandwidth/4*180*240)) 
+			{
+				ii++; 
+				center_ii.push_back({tcx,tcy});
+				//std::cout<<"I find "<< cc <<"th center!!!"<<",center_ii.size()="<<center_ii.size()<<std::endl;
+				curr_center[ccj][0]=0; curr_center[ccj][1]=0; 
+				ii_t++;
+			}
+			else
+			{
+				curr_center[ccj][0]=tcx; curr_center[ccj][1]=tcy;
+			} 
+		}
+		if (ii>0)
+		{
+			int sumx=0, sumy=0;
+			for (int cck=0; cck<center_ii.size(); cck++)
+			{
+				sumx+=center_ii[cck][0]; sumy+=center_ii[cck][1];
+			}
+			
+		}
+	}//end-for
+	cluster_center_remain.clear();
+
+	std::cout<<"ii_t="<<ii_t<<",cluster_center.size="<<cluster_center.size()<<std::endl;
+	}// end-elseif
+	//}// end-ifif (centroid_final.size()>3)
+	} //end if iter>10
 
 	//-----find the cluster points--------------
 	cv::RNG rng(12345);
@@ -435,6 +503,10 @@ void Meanshift::eventsCallback_simple(const dvs_msgs::EventArray::ConstPtr& msg)
 	double angle_ID0=0;
 	//std::vector<std::vector<int> > points_cluster_x(2, std::vector<int> (2, 0));
 	//std::vector<std::vector<cv::Point> > points_cluster_x(2, std::vector<cv::Point> (2, {0,0}));
+
+	//if (cluster_center.size()==0) 
+
+	std::cout<<"000cluster_center.size()="<<cluster_center.size()<<std::endl;
 	for (int w=0;w<cluster_center.size();w++)//centroid_final //cluster_center
 	{
 		int ID=w+1;
@@ -443,7 +515,7 @@ void Meanshift::eventsCallback_simple(const dvs_msgs::EventArray::ConstPtr& msg)
 		bool sign=0;
 		
 		cv::Mat clustersID=cv::Mat(2, events_size, CV_64F, cv::Scalar::all(0.));
-	
+
 		cv::Scalar color = cv::Scalar(rng.uniform(0,255), rng.uniform(0, 255), rng.uniform(0, 255));
 		for (int k=0;k<events_size;k++)
 		{
@@ -452,7 +524,7 @@ void Meanshift::eventsCallback_simple(const dvs_msgs::EventArray::ConstPtr& msg)
 			//std::cout<<"clusters.at(k, 0))="<<clusters.at<double>(cv::Point(k, 0))<<std::endl;
 			double distp=pow((x_mat-cluster_center[w][0]),2)+pow((y_mat-cluster_center[w][1]),2);
 			cluster_ID.push_back(ID);//w
-			if (distp<(bandwidth/2)*(bandwidth/2)*240*180*1.5)
+			if (distp<(bandwidth/2)*(bandwidth/2)*240*180)
 			{	//points_vector.push_back(points[k]);
 				//clusters.at<double>(cv::Point(k, 3))=ID;
 				cluster_ID.pop_back();
@@ -487,8 +559,12 @@ void Meanshift::eventsCallback_simple(const dvs_msgs::EventArray::ConstPtr& msg)
 		//row.push_back(points_cluster[0][0]);
 	}
 
+std::cout<<"points_ID0.size()="<<points_ID0.size()<<std::endl;
 	//----find the farest points in the principle axis from the centroid------------
-	std::vector<cv::Point> vec_far=FindFar(points_ID0, cluster_center[0][0], cluster_center[0][1], angle_ID0, imageID);
+
+	std::vector<cv::Point> vec_far;
+	if (cluster_center.size()>0) 
+		vec_far=FindFar(points_ID0, cluster_center[0][0], cluster_center[0][1], angle_ID0, imageID);
 
 	//std::cout<<"points_cluster.size="<<points_cluster.size()<<",points_vector.size="<<points_vector.size()<<std::endl;
 	
@@ -498,10 +574,13 @@ void Meanshift::eventsCallback_simple(const dvs_msgs::EventArray::ConstPtr& msg)
 	std::cout<<"TP="<<TP<<",LBI="<<LBI<<",GT="<<GT<<std::endl;
 	//std::cout<<"Recall="<<Recall<<"%"<<std::endl;
 
-	last_size=centroid_final.size();
-	centroid_prev=centroid_final;
+//	last_size=centroid_final.size();
+//	centroid_prev=centroid_final;
 
 	std_msgs::Float32MultiArray cen_msg;
+
+	if (cluster_center.size()>0) 
+	{
 	cen_msg.data.push_back(angle);
 	cen_msg.data.push_back(cluster_center[0][0]);
 	cen_msg.data.push_back(cluster_center[0][1]);
@@ -509,6 +588,13 @@ void Meanshift::eventsCallback_simple(const dvs_msgs::EventArray::ConstPtr& msg)
 	{
 		cen_msg.data.push_back(vec_far[i].x);
 		cen_msg.data.push_back(vec_far[i].y);
+	}
+	}
+	else 
+	{
+		cen_msg.data.push_back(-1);
+		cen_msg.data.push_back(-1);
+		cen_msg.data.push_back(-1);
 	}
 	center_orien_pub.publish(cen_msg);
  
@@ -535,7 +621,7 @@ void Meanshift::eventsCallback_simple(const dvs_msgs::EventArray::ConstPtr& msg)
 	cv::imshow("imaget", temporalIm);
 	cv::waitKey(1);*/
 }
-
+}
 
 
 
