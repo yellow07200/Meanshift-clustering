@@ -33,7 +33,7 @@
 
 #define Num_Cluster 7
 
-#define bandwidth 0.25//0.15
+#define bandwidth 0.17//0.15
 
 int iter=0;
 uint64_t first_timestamp;
@@ -88,7 +88,7 @@ void Meanshift::eventsCallback_simple(const dvs_msgs::EventArray::ConstPtr& msg)
 	points_vector.clear();
 	points_ID0.clear(); // points in the first cluster;
 	
-	iter+=1;
+	//iter+=1;
 	std::cout<<"iter="<<iter<<std::endl;
 
 	height=msg->height; //180
@@ -145,6 +145,7 @@ void Meanshift::eventsCallback_simple(const dvs_msgs::EventArray::ConstPtr& msg)
 
 if (events_size>60)
 {
+	iter+=1;
 	// count events per pixels with polarity
 	//cv::Mat data=cv::Mat(3, events_size, CV_64F, cv::Scalar::all(0.));
 
@@ -186,7 +187,6 @@ if (events_size>60)
 		double ts;
 		int temp=min(beginEvent+packet, events_size);
 		//events_num.push_back(temp);
-
 		for (int i = beginEvent; i < min(beginEvent+packet, events_size); i++)//
 		{
 			  //SELECT SMALL PACKETS OF MAXIMUM 1000 events
@@ -260,98 +260,98 @@ if (events_size>60)
 
 		beginEvent +=packet;
 
-	int inter=0;
-	float xx,yy;
-	std::vector<Point> centroid;
-	//std::cout<<"clustCentX-size="<<clustCentX.size()<<std::endl;
+		int inter=0;
+		float xx,yy;
+		std::vector<Point> centroid;
+		cv::Point cluster_point_cv;
+		for (int i=0; i<clustCentX.size();i++)//auto
+		{
+			//std::vector<std::vector<double> > cluster_point = i->getCentroid();
+			inter++;
+			int co=inter*30;
+			//Point cluster_point = i->getCentroid();
+			cluster_points.clear();
+			int count_points=0;
+			//std::cout<<"points_num="<<point2Clusters[i]<<std::endl;
+			//if (point2Clusters[i]<=0) break;
+			//if (inter==1) 
+			//{
+				xx=std::floor(clustCentX[i]*240);//cluster_point[0];//-----
+				yy=std::floor(clustCentY[i]*180);//cluster_point[1];//------
+				centroid.push_back({xx,yy});
+				cluster_point_cv=cv::Point(xx,yy);//yy,xx//------
+				//cv::circle(cv_image.image, cluster_point_cv, 1, cv::Scalar(255,255,255), 5, 8, 0);//--------	
 
-	cv::Point cluster_point_cv;
-	for (int i=0; i<clustCentX.size();i++)//auto
-	{
-		//std::vector<std::vector<double> > cluster_point = i->getCentroid();
-		inter++;
-		int co=inter*30;
-		//Point cluster_point = i->getCentroid();
-		cluster_points.clear();
-		int count_points=0;
-		//std::cout<<"points_num="<<point2Clusters[i]<<std::endl;
-		//if (point2Clusters[i]<=0) break;
-		//if (inter==1) 
-		//{
-			xx=std::floor(clustCentX[i]*240);//cluster_point[0];//-----
-			yy=std::floor(clustCentY[i]*180);//cluster_point[1];//------
-			centroid.push_back({xx,yy});
-			cluster_point_cv=cv::Point(xx,yy);//yy,xx//------
-			//cv::circle(cv_image.image, cluster_point_cv, 1, cv::Scalar(255,255,255), 5, 8, 0);//--------
-
-			// ------merge close centroids of data packet------------
-			for (int j = beginEvent; j < min(beginEvent+packet, events_size); j++)
-			{
-				const int x = msg->events[j].x;
-				const int y = msg->events[j].y;
-				//float dis2=pow((x-centroid[i][0]),2)+pow((y-centroid[i][1]),2);
-				float dis2=pow((x-xx),2)+pow((y-yy),2);
-				//std::cout<<"dis2="<<dis2<<std::endl;
-				if (dis2<(bandwidth/2)*(bandwidth/2)*240*180)
+				// ------merge close centroids of data packet------------
+				for (int j = beginEvent; j < min(beginEvent+packet, events_size); j++)
 				{
-					cluster_points.push_back({x,y});
-					//cluster.addPoint({x,y});
-					//cluster.addPoint({x,y});			
-					//clusters.push_back({x,y});
-					count_points++;	
+					const int x = msg->events[j].x;
+					const int y = msg->events[j].y;
+					//float dis2=pow((x-centroid[i][0]),2)+pow((y-centroid[i][1]),2);
+					float dis2=pow((x-xx),2)+pow((y-yy),2);
+					if (dis2<(bandwidth/2)*(bandwidth/2)*240*180)
+					{
+						std::cout<<"dis2="<<dis2<<std::endl;
+						cluster_points.push_back({x,y});
+						//cluster.addPoint({x,y});
+						//cluster.addPoint({x,y});			
+						//clusters.push_back({x,y});
+						count_points++;	
+					}
+
 				}
-			}
-			clusters_test.push_back(cluster_points);
-			std::cout<<"count_points="<<count_points<<std::endl;
-			// ------filter events noise----------------------------
-			if (count_points>10) //50 for raw events //4 for corner events //40 for last working file
-			{
-				//ClusterID++;
-				centroid_filter.push_back({xx,yy});//{ID,}
-				cv::circle(cv_image.image, cv::Point(xx,yy), 1, cv::Scalar(255,255,255), 5, 8, 0);//--------
-				//cv::circle(cv_image1.image, cluster_point_cv, 1, cv::Scalar(255,255,255), 5, 8, 0);//------------
-			}
-
-			//centroid_filter_prev=centroid_filter;
-			//centroid_filter.push_back({xx,yy});
-	}
+				clusters_test.push_back(cluster_points);
+				std::cout<<"count_points="<<count_points<<std::endl;
+				// ------filter events noise----------------------------
+				if (count_points>0) //50 for raw events //4 for corner events //40 for last working file
+				{
+					//ClusterID++;
+					//centroid_filter.push_back({xx,yy});//{ID,}
+					cv::circle(cv_image.image, cv::Point(xx,yy), 1, cv::Scalar(255,255,255), 5, 8, 0);//--------
+					//cv::circle(cv_image1.image, cluster_point_cv, 1, cv::Scalar(255,255,255), 5, 8, 0);//------------
+				}
+				//centroid_filter_prev=centroid_filter;
+				centroid_filter.push_back({xx,yy});
+		}
 
 
-	//if (events_size-beginEvent < packet )
-	std::cout<<"cluster_size="<<clustCentX.size()<<",ClusterID="<<ClusterID<<",centroid_filter="<<centroid_filter.size()<<std::endl;
+		//if (events_size-beginEvent < packet )
+		std::cout<<"cluster_size="<<clustCentX.size()<<",ClusterID="<<ClusterID<<",centroid_filter="<<centroid_filter.size()<<std::endl;
 
-		
 	}//while packet
-	
+	std::cout<<"xxx1"<<std::endl;
 	// merge close centroids of all data
 	int sign=0;
-	for(int i=0;i<centroid_filter.size();i++)
+	if (centroid_filter.size()>0)
 	{
-		int x1=centroid_filter[i][0];
-		int y1=centroid_filter[i][1];
-		for(int j=i;j<centroid_filter.size();j++)
+		for(int i=0;i<centroid_filter.size();i++)
 		{
-			int x2=centroid_filter[j][0];
-			int y2=centroid_filter[j][1];
-			int dis=pow((x1-x2),2)+pow((y1-y2),2);
-	
-			if (dis<(bandwidth/2)*(bandwidth/2)*240*180)// && x1!=0 && y1!=0)//800)// 400 last working //i!=j && 
+			int x1=centroid_filter[i][0];
+			int y1=centroid_filter[i][1];
+			for(int j=i;j<centroid_filter.size();j++)
 			{
-				x1=	(x1+centroid_filter[j][0])/2;	//x1=centroid_filter[i][0];
-				y1=	(y1+centroid_filter[j][1])/2;	//y1=centroid_filter[i][1];
-				centroid_filter[j][0]=0;centroid_filter[j][1]=0;	
-				//cv::circle(cv_image.image, cv::Point(x1,y1), 1, cv::Scalar(0,255,0), 5, 8, 0);
-				sign++;
+				int x2=centroid_filter[j][0];
+				int y2=centroid_filter[j][1];
+				int dis=pow((x1-x2),2)+pow((y1-y2),2);
+	
+				if (dis<(bandwidth/2)*(bandwidth/2)*240*180)// && x1!=0 && y1!=0)//800)// 400 last working //i!=j && 
+				{
+					x1=	(x1+centroid_filter[j][0])/2;	//x1=centroid_filter[i][0];
+					y1=	(y1+centroid_filter[j][1])/2;	//y1=centroid_filter[i][1];
+					centroid_filter[j][0]=0;centroid_filter[j][1]=0;	
+					//cv::circle(cv_image.image, cv::Point(x1,y1), 1, cv::Scalar(0,255,0), 5, 8, 0);
+					sign++;
+				}
+			}
+			if (x1!=0 && y1!=0)
+			{
+				ClusterID++;
+				centroid_final.push_back({x1,y1});//ClusterID,<<centroid_final[1][1]
+				cv::circle(cv_image.image, cv::Point(x1,y1), 1, cv::Scalar(0,255,0), 5, 8, 0);//------------------
 			}
 		}
-		if (x1!=0 && y1!=0)
-		{
-			ClusterID++;
-			centroid_final.push_back({x1,y1});//ClusterID,<<centroid_final[1][1]
-			cv::circle(cv_image.image, cv::Point(x1,y1), 1, cv::Scalar(0,255,0), 5, 8, 0);//------------------
-		}
 	}
-std::cout<<"centroid_filter.size="<<centroid_filter.size()<<",centroid_final.size="<<centroid_final.size()<<",ClusterID="<<ClusterID<<std::endl;
+	std::cout<<"centroid_filter.size="<<centroid_filter.size()<<",centroid_final.size="<<centroid_final.size()<<",ClusterID="<<ClusterID<<std::endl;
 	int cs=centroid_final.size();
 	for (int i=0; i<cs; i++)
 	{
@@ -370,131 +370,135 @@ std::cout<<"centroid_filter.size="<<centroid_filter.size()<<",centroid_final.siz
 	int ii_t=0; int vector_i=0;
 
 	// track the centroid----------------------------------
-	if (iter<10) cluster_center=centroid_final;//iter==1
-	else
-	{
-	LBI+=centroid_final.size(); 
-	GT+=7;
-	//if (centroid_final.size()<=7) TP+=centroid_final.size();
-	std::cout<<"temp_center.size()="<<temp_center.size()<<std::endl;
-	for (int cc=0; cc<temp_center.size(); cc++) // last iteration
-	{
-		int ii=0; 	std::vector<Point> center_ii;
-		int xii=0, yii=0; //int vector_i=0;
-		int xii_bar=0, yii_bar=0;
-		int ccx=temp_center[cc][0];
-		int ccy=temp_center[cc][1];
-		for (int tc=0; tc<centroid_final.size(); tc++) 
+	//if (iter<10) cluster_center=centroid_final;//iter==1
+	//else
+	//{
+	if (iter>0)
+	{ 
+		LBI+=centroid_final.size(); 
+		GT+=7;
+		//if (centroid_final.size()<=7) TP+=centroid_final.size();
+		std::cout<<"cluster_center.size()="<<cluster_center.size()<<",temp_center.size()="<<temp_center.size()<<std::endl;
+		for (int cc=0; cc<temp_center.size(); cc++) // last iteration
 		{
-			int tcx=centroid_final[tc][0]; 
-			int tcy=centroid_final[tc][1]; 		
-			double disTwoCen=pow((ccx-tcx),2)+pow((ccy-tcy),2);
-			if (disTwoCen<(bandwidth*bandwidth/4*180*240)) 
+			int ii=0; 	std::vector<Point> center_ii;
+			int xii=0, yii=0; //int vector_i=0;
+			int xii_bar=0, yii_bar=0;
+			int ccx=temp_center[cc][0];
+			int ccy=temp_center[cc][1];
+			for (int tc=0; tc<centroid_final.size(); tc++) 
 			{
-				ii++; 
-				center_ii.push_back({tcx,tcy});
-				//std::cout<<"I find "<< cc <<"th center!!!"<<",center_ii.size()="<<center_ii.size()<<std::endl;
-				curr_center[tc][0]=0; curr_center[tc][1]=0; 
-				ii_t++;
+				int tcx=centroid_final[tc][0]; 
+				int tcy=centroid_final[tc][1]; 		
+				double disTwoCen=pow((ccx-tcx),2)+pow((ccy-tcy),2);
+				if (disTwoCen<(bandwidth*bandwidth/4*180*240)) 
+				{
+					ii++; 
+					center_ii.push_back({tcx,tcy});
+					//std::cout<<"I find "<< cc <<"th center!!!"<<",center_ii.size()="<<center_ii.size()<<std::endl;
+					curr_center[tc][0]=0; curr_center[tc][1]=0; 
+					ii_t++;
+				}
+				else
+				{
+					curr_center[tc][0]=tcx; curr_center[tc][1]=tcy; // new center remained 
+				} 
 			}
-			else
-			{
-				curr_center[tc][0]=tcx; curr_center[tc][1]=tcy; // new center remained 
-			} 
-		}
 
-		//if (ii>0) TP++;
-		//std::cout<<"ii="<<ii<<",TP="<<TP<<std::endl;
+			//if (ii>0) TP++;
+			//std::cout<<"ii="<<ii<<",TP="<<TP<<std::endl;
 
-		//---check the repeated centers and get the final centers of current iteration----------
-		if (ii>0)//(center_ii.size()>1) 
-		{
-			vector_i++; TP++;
-			for (int j=0; j<center_ii.size(); j++)
+			//---check the repeated centers and get the final centers of current iteration----------
+			if (ii>0)//(center_ii.size()>1) 
 			{
-				xii+=center_ii[j][0];
-				yii+=center_ii[j][1];
-				std::cout<<"ii>0, point("<<center_ii[j][0]<<","<<center_ii[j][1]<<")"<<std::endl;
-			}
-			xii/=center_ii.size();
-			yii/=center_ii.size();
-			cluster_center.push_back({xii,yii});
-			vector_x=vector_x+xii-ccx; vector_y=vector_x+yii-ccy;
+				vector_i++; TP++;
+				for (int j=0; j<center_ii.size(); j++)
+				{
+					xii+=center_ii[j][0];
+					yii+=center_ii[j][1];
+					std::cout<<"ii>0, point("<<center_ii[j][0]<<","<<center_ii[j][1]<<")"<<std::endl;
+				}
+				xii/=center_ii.size();
+				yii/=center_ii.size();
+				cluster_center.push_back({xii,yii});
+				vector_x=vector_x+xii-ccx; vector_y=vector_x+yii-ccy;
 				std::cout<<"I find "<< cc <<"th center!!!---new"<<",TP="<<TP<<std::endl;
-		}
-		else if (vector_i!=0)
-		{
-			cluster_center.push_back({ccx+vector_x/vector_i,ccy+vector_y/vector_i});
+			}
+			else if (vector_i!=0)
+			{
+				cluster_center.push_back({ccx+vector_x/vector_i,ccy+vector_y/vector_i});
 				std::cout<<"I find "<< cc <<"th center!!!---dis"<<std::endl;
-		}
-		else 
-		{
-			cluster_center.push_back({ccx,ccy});
+			}
+			else 
+			{
+				cluster_center.push_back({ccx,ccy});
 				std::cout<<"I find "<< cc <<"th center!!!---dis"<<std::endl;
+			}
+			center_ii.clear();
 		}
-		center_ii.clear();
-	}
 
-	std::vector<Point> cluster_center_remain;
+		std::vector<Point> cluster_center_remain;
 
-	for (int cc=0; cc<curr_center.size(); cc++)
-	{
-		int it=0;
-		if (curr_center[cc][0]!=0 && curr_center[cc][1]!=0)
+		for (int cc=0; cc<curr_center.size(); cc++)
 		{
-			it++;
-			//cluster_center_remain[it][0]=curr_center[cc][0]; 
-			//cluster_center_remain[it][1]=curr_center[cc][1];
-			cluster_center_remain.push_back({curr_center[cc][0],curr_center[cc][0]});
+			int it=0;
+			if (curr_center[cc][0]!=0 && curr_center[cc][1]!=0)
+			{
+				it++;
+				//cluster_center_remain[it][0]=curr_center[cc][0]; 
+				//cluster_center_remain[it][1]=curr_center[cc][1];
+				cluster_center_remain.push_back({curr_center[cc][0],curr_center[cc][0]});
+			}
 		}
-	}
 	
-	if (cluster_center_remain.size()==1) 
-	{
-		cluster_center.push_back({cluster_center_remain[0][0],cluster_center_remain[0][0]});
-		std::cout<<"I find new center!!!---dis"<<std::endl;
-	}
-	else if ( cluster_center_remain.size()>0) {//cluster_center_remain.size>1;
-	for (int cci=0; cci<cluster_center_remain.size(); cci++)
-	{
-		std::vector<Point> center_ii;
-		int ii=0;
-		int ccx=cluster_center_remain[cci][0];
-		int ccy=cluster_center_remain[cci][1];
-		for (int ccj=cci+1; ccj<cluster_center_remain.size(); ccj++)
+		if (cluster_center_remain.size()==1) 
 		{
-			int tcx=cluster_center_remain[ccj][0];
-			int tcy=cluster_center_remain[ccj][1];
-			double disTwoCen=pow((ccx-tcx),2)+pow((ccy-tcy),2);
-			if (disTwoCen<(bandwidth*bandwidth/4*180*240)) 
-			{
-				ii++; 
-				center_ii.push_back({tcx,tcy});
-				//std::cout<<"I find "<< cc <<"th center!!!"<<",center_ii.size()="<<center_ii.size()<<std::endl;
-				curr_center[ccj][0]=0; curr_center[ccj][1]=0; 
-				ii_t++;
-			}
-			else
-			{
-				curr_center[ccj][0]=tcx; curr_center[ccj][1]=tcy;
-			} 
+			cluster_center.push_back({cluster_center_remain[0][0],cluster_center_remain[0][0]});
+			std::cout<<"I find new center!!!---dis"<<std::endl;
 		}
-		if (ii>0)
-		{
-			int sumx=0, sumy=0;
-			for (int cck=0; cck<center_ii.size(); cck++)
+		else if ( cluster_center_remain.size()>0)
+		{//cluster_center_remain.size>1;
+			for (int cci=0; cci<cluster_center_remain.size(); cci++)
 			{
-				sumx+=center_ii[cck][0]; sumy+=center_ii[cck][1];
-			}
+				std::vector<Point> center_ii;
+				int ii=0;
+				int ccx=cluster_center_remain[cci][0];
+				int ccy=cluster_center_remain[cci][1];
+				for (int ccj=cci+1; ccj<cluster_center_remain.size(); ccj++)
+				{
+					int tcx=cluster_center_remain[ccj][0];
+					int tcy=cluster_center_remain[ccj][1];
+					double disTwoCen=pow((ccx-tcx),2)+pow((ccy-tcy),2);
+				if (disTwoCen<(bandwidth*bandwidth/4*180*240)) 
+				{
+					ii++; 
+					center_ii.push_back({tcx,tcy});
+					//std::cout<<"I find "<< cc <<"th center!!!"<<",center_ii.size()="<<center_ii.size()<<std::endl;
+					curr_center[ccj][0]=0; curr_center[ccj][1]=0; 
+					ii_t++;
+				}
+				else
+				{
+					curr_center[ccj][0]=tcx; curr_center[ccj][1]=tcy;
+				} 
+				}
+				if (ii>0)
+				{
+					int sumx=0, sumy=0;
+					for (int cck=0; cck<center_ii.size(); cck++)
+					{
+						sumx+=center_ii[cck][0]; sumy+=center_ii[cck][1];
+					}
 			
-		}
-	}//end-for
-	cluster_center_remain.clear();
+				}
+			}//end-for
+			cluster_center_remain.clear();
 
-	std::cout<<"ii_t="<<ii_t<<",cluster_center.size="<<cluster_center.size()<<std::endl;
-	}// end-elseif
-	//}// end-ifif (centroid_final.size()>3)
-	} //end if iter>10
+			std::cout<<"ii_t="<<ii_t<<",cluster_center.size="<<cluster_center.size()<<std::endl;
+			//}// end-else
+			//}// end-ifif (centroid_final.size()>3)
+		} //end-else if ( cluster_center_remain.size()>0)
+	} //end-if iter>1
 
 	//-----find the cluster points--------------
 	cv::RNG rng(12345);
@@ -559,7 +563,7 @@ std::cout<<"centroid_filter.size="<<centroid_filter.size()<<",centroid_final.siz
 		//row.push_back(points_cluster[0][0]);
 	}
 
-std::cout<<"points_ID0.size()="<<points_ID0.size()<<std::endl;
+	std::cout<<"points_ID0.size()="<<points_ID0.size()<<std::endl;
 	//----find the farest points in the principle axis from the centroid------------
 
 	std::vector<cv::Point> vec_far;
@@ -574,8 +578,8 @@ std::cout<<"points_ID0.size()="<<points_ID0.size()<<std::endl;
 	std::cout<<"TP="<<TP<<",LBI="<<LBI<<",GT="<<GT<<std::endl;
 	//std::cout<<"Recall="<<Recall<<"%"<<std::endl;
 
-//	last_size=centroid_final.size();
-//	centroid_prev=centroid_final;
+	//	last_size=centroid_final.size();
+	//	centroid_prev=centroid_final;
 
 	std_msgs::Float32MultiArray cen_msg;
 
@@ -620,8 +624,8 @@ std::cout<<"points_ID0.size()="<<points_ID0.size()<<std::endl;
 	/*cv::namedWindow("imaget", CV_WINDOW_AUTOSIZE);
 	cv::imshow("imaget", temporalIm);
 	cv::waitKey(1);*/
-}
-}
+} //end-if(event_size>60)
+} //end-void
 
 
 
