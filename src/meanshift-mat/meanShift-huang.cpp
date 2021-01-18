@@ -550,8 +550,8 @@ void Meanshift::eventsCallback_simple(const dvs_msgs::EventArray::ConstPtr& msg)
 			// save in vector 
 			for (int tc=0; tc<cluster_center.size(); tc++)
 			{
-				int ccx=cluster_center[tc][0];
-				int ccy=cluster_center[tc][1];
+				int ccx=cluster_center_mat.at<double>(cv::Point(0, tc));//cluster_center[tc][0];
+				int ccy=cluster_center_mat.at<double>(cv::Point(1, tc));;//cluster_center[tc][1];
 				if (ccx!=0)
 				{
 					cluster_center_final.push_back({ccx,ccy});
@@ -723,13 +723,17 @@ void Meanshift::eventsCallback_simple(const dvs_msgs::EventArray::ConstPtr& msg)
 			if (sign) 
 			{
 				angle = getOrientation(points_vector, cv_image1.image); //orientation in radians //-3.14/2;
-				double angle0 = getOrientation(points_ID0, imageID); 
+				//std::cout<<"111"<<std::endl;
+				//double angle0 = getOrientation(points_ID0, imageID);
+				//std::cout<<"222"<<std::endl;
 				//std::cout<<"ID="<<ID<<",angle="<<angle<<",cluster_center.size()="<<cluster_center.size()<<std::endl;//",size="<<points_cluster[0].size()<<std::endl;
 			}
+			//std::cout<<"333"<<std::endl;
 			if (w==0) angle_ID0=angle; // record the principle axis orientation of 1st cluster //+3.14/2
 			//std::cout<<"angle_ID0="<<angle_ID0<<std::endl;
 			//clusters.at<double>(cv::Point(i, 0))
 			//points_cluster.push_back(points_vector);
+			//std::cout<<"444"<<std::endl;
 			points_vector.clear();
 			
 			//row.push_back(points_cluster[0][0]);
@@ -753,7 +757,8 @@ void Meanshift::eventsCallback_simple(const dvs_msgs::EventArray::ConstPtr& msg)
 
 		//	last_size=centroid_final.size();
 		//	centroid_prev=centroid_final;
-		ROS_INFO("xxx");
+		ROS_INFO("angle=%f",angle_ID0);
+
 		std_msgs::Float32MultiArray cen_msg;
 
 		if (cluster_center.size()>0) 
@@ -772,7 +777,10 @@ void Meanshift::eventsCallback_simple(const dvs_msgs::EventArray::ConstPtr& msg)
 			cen_msg.data.push_back(-1);
 			cen_msg.data.push_back(-1);
 			cen_msg.data.push_back(-1);
+			cen_msg.data.push_back(-1);
+			cen_msg.data.push_back(-1);
 		}
+		//std::cout<<"555"<<std::endl;
 		center_orien_pub.publish(cen_msg);
 	
 		//---------------Evaluation-----------------
@@ -799,6 +807,7 @@ void Meanshift::eventsCallback_simple(const dvs_msgs::EventArray::ConstPtr& msg)
 		cv::waitKey(1);*/
 		ROS_INFO("Iter=%d",iter);
 	} //end-if(event_size>60)
+	//std::cout<<"666"<<std::endl;
 } //end-void
 
 void CameraInfoCallback(const sensor_msgs::CameraInfo::ConstPtr &camera_info)
